@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --safe-bottom: env(safe-area-inset-bottom);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+  overflow-x: hidden;
+  background: #f8fafc;
+  color: #1f2937;
+}
+
+body {
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select,
+textarea {
+  font-size: 16px;
+}
+
+textarea {
+  resize: vertical;
+}
+
+.safe-bottom {
+  padding-bottom: calc(1rem + var(--safe-bottom));
+}
+
+.tap {
+  min-height: 44px;
+}

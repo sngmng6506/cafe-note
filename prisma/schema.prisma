@@ -1,0 +1,58 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ReviewStatus {
+  DRAFT
+  GENERATED
+}
+
+model Review {
+  id                   String       @id @default(uuid())
+  cafeName             String
+  visitedAt            DateTime     @db.Date
+  area                 String
+  cafeType             Json
+  basic                Json
+  access               Json
+  exterior             Json
+  space                Json
+  atmosphere           Json
+  menuOverview         Json
+  orderedItems         Json
+  usability            Json
+  service              Json
+  photo                Json
+  conclusion           Json
+  status               ReviewStatus @default(DRAFT)
+  titleOptions         Json?
+  selectedTitle        String?
+  summary              String?
+  body                 String?      @db.Text
+  tags                 Json?
+  photoPlan            Json?
+  warnings             Json?
+  aiModel              String?
+  promptVersion        String?
+  generationCount      Int          @default(0)
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+
+  @@index([visitedAt])
+  @@index([createdAt])
+  @@index([cafeName])
+}
+
+model LoginAttempt {
+  id        String   @id @default(uuid())
+  ipHash    String
+  succeeded Boolean
+  createdAt DateTime @default(now())
+
+  @@index([ipHash, createdAt])
+}
