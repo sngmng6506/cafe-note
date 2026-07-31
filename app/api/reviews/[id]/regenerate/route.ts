@@ -33,14 +33,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   let result;
   try {
-    try {
-      result = await generateCafeReview({ ...parsed.data, photoCount: 0 }, []);
-    } catch {
-      result = await generateCafeReview({ ...parsed.data, photoCount: 0 }, []);
-    }
+    result = await generateCafeReview({ ...parsed.data, photoCount: 0 });
     result = CafeReviewResultSchema.parse(result);
-    validatePhotoPlan(result, 0);
-  } catch {
+    validatePhotoPlan(result);
+  } catch (error) {
+    console.error("AI regeneration failed", { error });
     return jsonError("AI_GENERATION_FAILED", "리뷰를 다시 생성하지 못했어요. 잠시 후 다시 시도해 주세요.", 502);
   }
 
@@ -53,7 +50,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       summary: result.summary,
       body: result.body,
       tags: normalizeTags(result.tags),
-      photoPlan: [],
+      photoPlan: result.photoPlan,
       warnings: result.warnings,
       aiModel: env.OPENAI_MODEL,
       promptVersion: env.PROMPT_VERSION,
