@@ -21,7 +21,10 @@ function parseJsonContent(content: string): unknown {
   }
 }
 
-export async function generateCafeReview(input: GenerateReviewInput): Promise<CafeReviewResult> {
+export async function generateCafeReview(
+  input: GenerateReviewInput,
+  _legacyImages?: unknown[]
+): Promise<CafeReviewResult> {
   const env = getEnv();
   const openai = getOpenAIClient();
 
