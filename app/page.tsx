@@ -4,7 +4,9 @@ import { ReviewForm } from "@/components/review/ReviewForm";
 export default function HomePage() {
   return (
     <AppShell>
-      <ReviewForm />
+      <div className="text-only-review">
+        <ReviewForm />
+      </div>
     </AppShell>
   );
 }
