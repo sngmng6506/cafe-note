@@ -42,3 +42,8 @@ textarea {
 .tap {
   min-height: 44px;
 }
+
+/* 사진 파일은 AI나 서버로 보내지 않고, 텍스트 기반 사진 가이드만 생성한다. */
+.text-only-review div:has(> input[type="file"]) {
+  display: none;
+}
