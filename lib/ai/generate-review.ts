@@ -1,52 +1,43 @@
-import { zodResponseFormat } from "openai/helpers/zod";
 import { CafeReviewResultSchema, type CafeReviewResult, validatePhotoPlan } from "@/lib/ai/schema";
 import { getOpenAIClient } from "@/lib/ai/client";
 import { buildUserPrompt, SYSTEM_PROMPT } from "@/lib/ai/prompt";
 import { getEnv } from "@/lib/env";
 import type { GenerateReviewInput } from "@/lib/validation";
 
-type ImageInput = {
-  file: File;
-  sourceIndex: number;
-};
+function parseJsonContent(content: string): unknown {
+  const trimmed = content.trim();
+  const withoutFence = trimmed
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/, "")
+    .trim();
 
-async function fileToDataUrl(file: File) {
-  const buffer = Buffer.from(await file.arrayBuffer());
-  return `data:${file.type};base64,${buffer.toString("base64")}`;
+  try {
+    return JSON.parse(withoutFence);
+  } catch {
+    const start = withoutFence.indexOf("{");
+    const end = withoutFence.lastIndexOf("}");
+    if (start < 0 || end <= start) throw new Error("AI 응답에서 JSON 객체를 찾지 못했어요.");
+    return JSON.parse(withoutFence.slice(start, end + 1));
+  }
 }
 
-export async function generateCafeReview(input: GenerateReviewInput, images: ImageInput[]) {
+export async function generateCafeReview(input: GenerateReviewInput): Promise<CafeReviewResult> {
   const env = getEnv();
   const openai = getOpenAIClient();
-  const imageParts = await Promise.all(
-    images.map(async (image) => ({
-      type: "input_image" as const,
-      image_url: await fileToDataUrl(image.file),
-      detail: "low" as const
-    }))
-  );
 
-  const response = await openai.responses.parse({
+  const response = await openai.chat.completions.create({
     model: env.OPENAI_MODEL,
-    input: [
+    messages: [
       { role: "system", content: SYSTEM_PROMPT },
-      {
-        role: "user",
-        content: [{ type: "input_text", text: buildUserPrompt(input) }, ...imageParts]
-      }
+      { role: "user", content: buildUserPrompt(input) }
     ],
-    text: {
-      format: zodResponseFormat(CafeReviewResultSchema, "cafe_review_result") as unknown as {
-        type: "json_schema";
-        name: string;
-        schema: Record<string, unknown>;
-        strict?: boolean;
-      }
-    }
+    temperature: 0.5
   });
 
-  const parsed = response.output_parsed as CafeReviewResult | null;
-  if (!parsed) throw new Error("AI 응답을 해석하지 못했어요.");
-  validatePhotoPlan(parsed, input.photoCount);
+  const content = response.choices[0]?.message?.content;
+  if (!content) throw new Error("AI 응답이 비어 있어요.");
+
+  const parsed = CafeReviewResultSchema.parse(parseJsonContent(content));
+  validatePhotoPlan(parsed);
   return parsed;
 }
