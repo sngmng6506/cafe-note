@@ -30,7 +30,7 @@ export const CafeReviewResultSchema = z.object({
 
 export type CafeReviewResult = z.infer<typeof CafeReviewResultSchema>;
 
-export function validatePhotoPlan(result: CafeReviewResult) {
+export function validatePhotoPlan(result: CafeReviewResult, _legacyPhotoCount?: number) {
   const sourceIndexes = new Set<number>();
   const orders = new Set<number>();
 
