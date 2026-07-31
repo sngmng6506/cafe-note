@@ -23,7 +23,8 @@ export function insertPhotoMarkers(body: string, photoPlan: CafeReviewResult["ph
     .sort((a, b) => a.recommendedOrder - b.recommendedOrder)
     .forEach((photo) => {
       const index = Math.min(photo.insertAfterParagraph, paragraphs.length);
-      const marker = `[사진 ${photo.sourceIndex} · ${categoryLabels[photo.category] ?? "기타"}]`;
+      const category = categoryLabels[photo.category] ?? "기타";
+      const marker = `[사진 추천 ${photo.recommendedOrder} · ${category} · ${photo.description}]`;
       markersByParagraph.set(index, [...(markersByParagraph.get(index) ?? []), marker]);
     });
 
