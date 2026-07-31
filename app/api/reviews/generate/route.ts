@@ -3,7 +3,6 @@ import { CafeReviewResultSchema, validatePhotoPlan } from "@/lib/ai/schema";
 import { generateCafeReview } from "@/lib/ai/generate-review";
 import { getEnv } from "@/lib/env";
 import { jsonError, requireAuth, serializeReview, verifyOrigin } from "@/lib/http";
-import { validateServerImages } from "@/lib/images/validation";
 import { prisma } from "@/lib/db";
 import { generateReviewInputSchema, normalizeTags } from "@/lib/validation";
 
@@ -25,41 +24,21 @@ export async function POST(request: NextRequest) {
     return jsonError("VALIDATION_ERROR", "입력값을 읽을 수 없어요.");
   }
 
-  const images = formData.getAll("images").filter((value): value is File => value instanceof File);
   const parsed = generateReviewInputSchema.safeParse({
     ...(typeof payloadJson === "object" && payloadJson !== null ? payloadJson : {}),
-    photoCount: images.length
+    photoCount: 0
   });
   if (!parsed.success) {
     return jsonError("VALIDATION_ERROR", parsed.error.issues[0]?.message ?? "입력값을 확인해 주세요.");
   }
 
-  try {
-    await validateServerImages(images, {
-      maxCount: env.MAX_IMAGE_COUNT,
-      maxSizeMb: env.MAX_IMAGE_SIZE_MB,
-      maxTotalMb: env.MAX_TOTAL_UPLOAD_MB
-    });
-  } catch (error) {
-    return jsonError("IMAGE_ERROR", error instanceof Error ? error.message : "사진을 확인해 주세요.");
-  }
-
   let result;
   try {
-    try {
-      result = await generateCafeReview(
-        parsed.data,
-        images.map((file, index) => ({ file, sourceIndex: index + 1 }))
-      );
-    } catch {
-      result = await generateCafeReview(
-        parsed.data,
-        images.map((file, index) => ({ file, sourceIndex: index + 1 }))
-      );
-    }
+    result = await generateCafeReview(parsed.data);
     result = CafeReviewResultSchema.parse(result);
-    validatePhotoPlan(result, images.length);
-  } catch {
+    validatePhotoPlan(result);
+  } catch (error) {
+    console.error("AI generation failed", { error, model: env.OPENAI_MODEL });
     return jsonError(
       "AI_GENERATION_FAILED",
       "리뷰를 생성하지 못했어요. 입력한 내용은 유지했으니 잠시 후 다시 시도해 주세요.",
@@ -92,7 +71,8 @@ export async function POST(request: NextRequest) {
       }
     });
     return NextResponse.json({ review: serializeReview(review) });
-  } catch {
+  } catch (error) {
+    console.error("Review save failed", { error });
     return jsonError("DB_SAVE_FAILED", "생성 결과를 저장하지 못했어요. 잠시 후 다시 시도해 주세요.", 500);
   }
 }
