@@ -24,25 +24,26 @@ export const CafeReviewResultSchema = z.object({
       insertAfterParagraph: z.number().int().min(0),
       optionalCaption: z.string().max(100).nullable()
     })
-  ),
+  ).max(15),
   warnings: z.array(z.string().min(1).max(200)).max(5)
 });
 
 export type CafeReviewResult = z.infer<typeof CafeReviewResultSchema>;
 
-export function validatePhotoPlan(result: CafeReviewResult, photoCount: number) {
-  if (photoCount === 0 && result.photoPlan.length > 0) {
-    throw new Error("사진이 없는데 사진 계획이 반환됐습니다.");
-  }
+export function validatePhotoPlan(result: CafeReviewResult) {
   const sourceIndexes = new Set<number>();
   const orders = new Set<number>();
+
   for (const item of result.photoPlan) {
-    if (item.sourceIndex > photoCount) throw new Error("존재하지 않는 사진 번호가 포함됐습니다.");
-    if (sourceIndexes.has(item.sourceIndex)) throw new Error("사진 번호가 중복됐습니다.");
+    if (sourceIndexes.has(item.sourceIndex)) throw new Error("사진 추천 번호가 중복됐습니다.");
     sourceIndexes.add(item.sourceIndex);
     if (orders.has(item.recommendedOrder)) throw new Error("추천 순번이 중복됐습니다.");
     orders.add(item.recommendedOrder);
   }
+
+  [...sourceIndexes].sort((a, b) => a - b).forEach((sourceIndex, index) => {
+    if (sourceIndex !== index + 1) throw new Error("사진 추천 번호는 1부터 이어져야 합니다.");
+  });
   [...orders].sort((a, b) => a - b).forEach((order, index) => {
     if (order !== index + 1) throw new Error("추천 순번은 1부터 이어져야 합니다.");
   });
